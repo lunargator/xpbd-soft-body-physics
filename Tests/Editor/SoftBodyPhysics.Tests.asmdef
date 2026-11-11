@@ -3,7 +3,8 @@
     "rootNamespace": "SoftBodyPhysics.Tests",
     "references": [
         "SoftBodyPhysics.Core",
-        "SoftBodyPhysics.Unity"
+        "SoftBodyPhysics.Unity",
+        "SoftBodyPhysics.Samples"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

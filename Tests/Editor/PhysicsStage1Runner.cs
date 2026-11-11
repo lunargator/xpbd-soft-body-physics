@@ -75,6 +75,9 @@ namespace SoftBodyPhysics.Tests {
             failures += Invoke(report, "large deformation", performance.LargeDeformationDoesNotExplode);
             failures += Invoke(report, "extreme stiffness", performance.ExtremeStiffnessAndTimestepsStayFinite);
             failures += Invoke(report, "odd colliders", performance.LowAndHighCountsAndOddCollidersStayFinite);
+            failures += Invoke(report, "particle pace", performance.SolverTimeGrowsWithParticleCount);
+            failures += Invoke(report, "constraint pace", performance.SolverTimeGrowsWithConstraintCount);
+            failures += Invoke(report, "iteration pace", performance.SolverTimeGrowsWithIterations);
             var meshes = new SoftBodyMeshTests();
             failures += Invoke(report, "mesh uv", meshes.SphereAndCubeKeepUvsNormalsAndBounds);
             failures += Invoke(report, "mesh import", meshes.ImportedMeshKeepsItsUvsAndReusesTheBake);

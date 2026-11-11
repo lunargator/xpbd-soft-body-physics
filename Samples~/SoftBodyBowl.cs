@@ -43,8 +43,6 @@ namespace SoftBodyPhysics.Samples {
         readonly Dictionary<SoftBody, Vector3> lastShove = new Dictionary<SoftBody, Vector3>();
         readonly Dictionary<SoftBody, Vector3> shoveDirection = new Dictionary<SoftBody, Vector3>();
         float shoveUntil;
-        float nextShoveAt;
-        int shovesPlayed;
         int builtEpoch = -1;
         float orbitYaw;
         float orbitPitch;
@@ -60,8 +58,6 @@ namespace SoftBodyPhysics.Samples {
         const float OrbitSpeed = 1.25f;
         const float ClipSeconds = 12f;
         const float ClipYawSweep = 2.05f;
-        const int ClipShoves = 7;
-        const float ShoveGap = 2.6f / 2.25f;
 
         public static CollisionPlane[] CreatePlanes() {
             return new[] {
@@ -129,13 +125,7 @@ namespace SoftBodyPhysics.Samples {
             QualitySettings.vSyncCount = 0;
             if(builtEpoch != SamplePlay.Epoch) Build();
             SampleTechView.Ensure(this);
-            if(Pressed(Key.F) || (shovesPlayed < ClipShoves && Time.time >= nextShoveAt)) {
-                ShoveAll();
-                if(Time.time >= nextShoveAt) {
-                    shovesPlayed++;
-                    nextShoveAt = Time.time + ShoveGap;
-                }
-            }
+            if(Pressed(Key.F)) ShoveAll();
             if(Pressed(Key.R)) ToggleSmooth();
             if(Time.time < shoveUntil) ApplyShove();
         }
@@ -154,7 +144,7 @@ namespace SoftBodyPhysics.Samples {
             simulation.Play(new Vector3(0f, -9.81f, 0f), 4, 1, 1f / 60f);
             simulation.Collision.ClearPlanes();
             simulation.Collision.ShellScale = 1.05f;
-            BuildView();
+            BuildGlass(transform);
             SoftBodyColliders.Invalidate();
             EnsureSpheres();
             EnsureRocks();
@@ -399,8 +389,6 @@ namespace SoftBodyPhysics.Samples {
             clipPlaying = true;
             lastShove.Clear();
             shoveDirection.Clear();
-            shovesPlayed = 0;
-            nextShoveAt = Time.time + 0.7f;
             camera.fieldOfView = 40f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.04f, 0.045f, 0.06f, 1f);
@@ -445,16 +433,14 @@ namespace SoftBodyPhysics.Samples {
             camera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(center - position, Vector3.up));
         }
 
-        void BuildView() {
-            DestroyChild("Bowl");
-            DestroyChild("Box");
+        public static void BuildGlass(Transform parent) {
+            BuildGlass(parent, MinX, MaxX, MinY, MaxY, MinZ, MaxZ, false);
+        }
 
-            float x0 = MinX;
-            float x1 = MaxX;
-            float y0 = MinY;
-            float y1 = MaxY;
-            float z0 = MinZ;
-            float z1 = MaxZ;
+        public static void BuildGlass(Transform parent, float x0, float x1, float y0, float y1, float z0, float z1, bool openTop) {
+            if(parent == null) return;
+            RemoveChild(parent, "Bowl");
+            RemoveChild(parent, "Box");
             var vertices = new[] {
                 new Vector3(x0, y0, z0),
                 new Vector3(x1, y0, z0),
@@ -471,14 +457,22 @@ namespace SoftBodyPhysics.Samples {
                 normals[i] = inward.normalized;
             }
 
-            var triangles = new[] {
-                0, 2, 1, 0, 3, 2,
-                4, 5, 6, 4, 6, 7,
-                0, 1, 5, 0, 5, 4,
-                1, 2, 6, 1, 6, 5,
-                2, 3, 7, 2, 7, 6,
-                3, 0, 4, 3, 4, 7
-            };
+            int[] triangles = openTop
+                ? new[] {
+                    0, 2, 1, 0, 3, 2,
+                    0, 1, 5, 0, 5, 4,
+                    1, 2, 6, 1, 6, 5,
+                    2, 3, 7, 2, 7, 6,
+                    3, 0, 4, 3, 4, 7
+                }
+                : new[] {
+                    0, 2, 1, 0, 3, 2,
+                    4, 5, 6, 4, 6, 7,
+                    0, 1, 5, 0, 5, 4,
+                    1, 2, 6, 1, 6, 5,
+                    2, 3, 7, 2, 7, 6,
+                    3, 0, 4, 3, 4, 7
+                };
             var uvs = new Vector2[8];
             for (int i = 0; i < uvs.Length; i++) uvs[i] = new Vector2(vertices[i].x, vertices[i].y);
 
@@ -490,10 +484,10 @@ namespace SoftBodyPhysics.Samples {
             mesh.RecalculateBounds();
 
             var box = new GameObject("Box");
-            box.transform.SetParent(transform, false);
+            box.transform.SetParent(parent, false);
             box.AddComponent<MeshFilter>().sharedMesh = mesh;
             MeshRenderer renderer = box.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = Glass();
+            renderer.sharedMaterial = CreateGlass();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             const float shell = 0.08f;
@@ -502,7 +496,7 @@ namespace SoftBodyPhysics.Samples {
             float height = y1 - y0;
             float midY = (y0 + y1) * 0.5f;
             Face(box.transform, new Vector3(0f, y0 - shell * 0.5f, 0f), new Vector3(width + shell, shell, depth + shell));
-            Face(box.transform, new Vector3(0f, y1 + shell * 0.5f, 0f), new Vector3(width + shell, shell, depth + shell));
+            if(!openTop) Face(box.transform, new Vector3(0f, y1 + shell * 0.5f, 0f), new Vector3(width + shell, shell, depth + shell));
             Face(box.transform, new Vector3(x0 - shell * 0.5f, midY, 0f), new Vector3(shell, height, depth));
             Face(box.transform, new Vector3(x1 + shell * 0.5f, midY, 0f), new Vector3(shell, height, depth));
             Face(box.transform, new Vector3(0f, midY, z0 - shell * 0.5f), new Vector3(width, height, shell));
@@ -534,8 +528,8 @@ namespace SoftBodyPhysics.Samples {
             rail.name = "Box Edge";
             rail.transform.SetParent(parent, false);
             Collider collider = rail.GetComponent<Collider>();
-            if(Application.isPlaying) Destroy(collider);
-            else DestroyImmediate(collider);
+            if(Application.isPlaying) Object.Destroy(collider);
+            else Object.DestroyImmediate(collider);
             Vector3 span = to - from;
             rail.transform.localPosition = (from + to) * 0.5f;
             rail.transform.localRotation = Quaternion.FromToRotation(Vector3.right, span);
@@ -543,14 +537,14 @@ namespace SoftBodyPhysics.Samples {
             rail.GetComponent<MeshRenderer>().sharedMaterial = SolidPaint.Create(new Color(0.90f, 0.93f, 0.96f, 1f));
         }
 
-        void DestroyChild(string childName) {
-            Transform existing = transform.Find(childName);
+        static void RemoveChild(Transform parent, string childName) {
+            Transform existing = parent.Find(childName);
             if(existing == null) return;
-            if(Application.isPlaying) Destroy(existing.gameObject);
-            else DestroyImmediate(existing.gameObject);
+            if(Application.isPlaying) Object.Destroy(existing.gameObject);
+            else Object.DestroyImmediate(existing.gameObject);
         }
 
-        static Material Glass() {
+        public static Material CreateGlass() {
             Material material = SolidPaint.Create(new Color(0.70f, 0.84f, 0.92f, 0.55f), 0.7f);
             material.SetFloat("_Cull", 2f);
             material.SetFloat("_Surface", 1f);

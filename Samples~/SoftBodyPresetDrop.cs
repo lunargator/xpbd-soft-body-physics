@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using SoftBodyPhysics.Unity;
 
 namespace SoftBodyPhysics.Samples {
@@ -25,9 +26,8 @@ namespace SoftBodyPhysics.Samples {
             new Color(0.42f, 0.22f, 0.72f)
         };
 
-        bool slow;
-        float speed = 0.25f;
         int builtEpoch = -1;
+        bool slow;
 
         void OnDisable() { if(Time.timeScale != 1f) Time.timeScale = 1f; }
 
@@ -36,24 +36,16 @@ namespace SoftBodyPhysics.Samples {
             Application.targetFrameRate = 60;
             QualitySettings.vSyncCount = 0;
             SamplePaint.ShowSolids();
-            Time.timeScale = slow ? speed : 1f;
             if(builtEpoch != SamplePlay.Epoch) Build();
+            if(Pressed(Key.F)) slow = !slow;
+            Time.timeScale = slow ? 0.25f : 1f;
+            if(Pressed(Key.R)) Drop();
             SampleTechView.Ensure(this);
         }
 
-        void OnGUI() {
-            if(!Application.isPlaying) return;
-            GUI.Box(new Rect(12f, 12f, 640f, 148f),
-                "Materials\n" + Stats(SoftBodyPreset.FirmElastic, "Firm")
-                + "\n" + Stats(SoftBodyPreset.Rubber, "Rubber")
-                + "\n" + Stats(SoftBodyPreset.Gelatin, "Gelatin")
-                + "\n" + Stats(SoftBodyPreset.Jelly, "Jelly")
-                + "\n" + Stats(SoftBodyPreset.Slime, "Slime")
-                + "\nStiffness, damping, friction, bounce. A jelly cube drops with them.");
-            slow = GUI.Toggle(new Rect(24f, 168f, 160f, 22f), slow, "Slow motion");
-            if(!slow) return;
-            speed = GUI.HorizontalSlider(new Rect(24f, 196f, 220f, 18f), speed, 0.08f, 1f);
-            GUI.Label(new Rect(252f, 188f, 80f, 22f), speed.ToString("0.00") + " x");
+        static bool Pressed(Key key) {
+            Keyboard keyboard = Keyboard.current;
+            return keyboard != null && keyboard[key].wasPressedThisFrame;
         }
 
         void Build() {
@@ -63,10 +55,20 @@ namespace SoftBodyPhysics.Samples {
             simulation.Play(new Vector3(0f, -9.81f, 0f), 4, 1, 1f / 60f);
             simulation.Collision.ClearPlanes();
             simulation.Collision.ShellScale = SquishScale;
+            Camera camera = Camera.main;
+            if(camera != null) {
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = new Color(0.04f, 0.045f, 0.06f, 1f);
+            }
+
+            Drop();
+            SampleLights.EnableShadows();
+        }
+
+        void Drop() {
             ClearChildren();
             for (int i = 0; i < Presets.Length; i++) Spawn(i);
             SpawnCube();
-            SampleLights.EnableShadows();
         }
 
         void ClearChildren() {
@@ -75,14 +77,6 @@ namespace SoftBodyPhysics.Samples {
                 if(child.GetComponent<SampleTechView>() != null) continue;
                 Destroy(child.gameObject);
             }
-        }
-
-        static string Stats(SoftBodyPreset preset, string name) {
-            if(!SoftBodyMaterials.TryGet(preset, out SoftBodyMaterials.Recipe recipe)) return name;
-            return name + "   " + recipe.Stiffness.ToString("0.00")
-                + "   " + recipe.Damping.ToString("0.00")
-                + "   " + recipe.Friction.ToString("0.00")
-                + "   " + recipe.Restitution.ToString("0.00");
         }
 
         void Spawn(int index) {

@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using NUnit.Framework;
 using SoftBodyPhysics.Collision;
+using SoftBodyPhysics.Constraints;
 using SoftBodyPhysics.Core;
 using SoftBodyPhysics.Unity;
 using UnityEngine;
@@ -121,6 +122,81 @@ namespace SoftBodyPhysics.Tests {
 
             Assert.Less(falling.TotalMilliseconds, 12f);
             Assert.Less(resting.TotalMilliseconds, 8f);
+        }
+
+        [Test]
+        public void SolverTimeGrowsWithParticleCount() {
+            var report = new StringBuilder();
+            report.AppendLine(Conditions());
+            int[] segments = { 3, 6, 8, 12 };
+            int[] stacks = { 2, 4, 6, 8 };
+            float first = 0f;
+            float last = 0f;
+            int lastParticles = 0;
+            for (int i = 0; i < segments.Length; i++) {
+                Measured step = TimeOneSphere(segments[i], stacks[i], 4, 0);
+                report.AppendLine(PaceLine("particle sweep", step));
+                Assert.Greater(step.Profile.ParticleCount, lastParticles);
+                Assert.Greater(step.Profile.TotalMilliseconds, 0f);
+                if(i == 0) first = step.Profile.TotalMilliseconds;
+                last = step.Profile.TotalMilliseconds;
+                lastParticles = step.Profile.ParticleCount;
+            }
+
+            Assert.AreEqual(5, TimeOneSphere(3, 2, 4, 0).Profile.ParticleCount);
+            Assert.AreEqual(86, lastParticles);
+            Assert.Greater(last, first);
+            AppendBenchmark(report);
+        }
+
+        [Test]
+        public void SolverTimeGrowsWithConstraintCount() {
+            var report = new StringBuilder();
+            report.AppendLine(Conditions());
+            int[] extra = { 0, 40, 120 };
+            float first = 0f;
+            float last = 0f;
+            int lastConstraints = -1;
+            int particles = 0;
+            for (int i = 0; i < extra.Length; i++) {
+                Measured step = TimeOneSphere(6, 4, 4, extra[i]);
+                report.AppendLine(PaceLine("constraint sweep", step));
+                Assert.Greater(step.Constraints, lastConstraints);
+                Assert.Greater(step.Profile.ConstraintMilliseconds, 0f);
+                if(i == 0) {
+                    first = step.Profile.ConstraintMilliseconds;
+                    particles = step.Profile.ParticleCount;
+                }
+                last = step.Profile.ConstraintMilliseconds;
+                lastConstraints = step.Constraints;
+            }
+
+            Assert.AreEqual(particles, TimeOneSphere(6, 4, 4, 120).Profile.ParticleCount);
+            Assert.Greater(last, first);
+            AppendBenchmark(report);
+        }
+
+        [Test]
+        public void SolverTimeGrowsWithIterations() {
+            var report = new StringBuilder();
+            report.AppendLine(Conditions());
+            int[] iterations = { 1, 2, 4, 8 };
+            float first = 0f;
+            float last = 0f;
+            int particles = 0;
+            for (int i = 0; i < iterations.Length; i++) {
+                Measured step = TimeOneSphere(6, 4, iterations[i], 0);
+                report.AppendLine(PaceLine("iteration sweep " + iterations[i], step));
+                Assert.Greater(step.Profile.TotalMilliseconds, 0f);
+                if(i == 0) {
+                    first = step.Profile.TotalMilliseconds;
+                    particles = step.Profile.ParticleCount;
+                } else Assert.AreEqual(particles, step.Profile.ParticleCount);
+                last = step.Profile.TotalMilliseconds;
+            }
+
+            Assert.Greater(last, first);
+            AppendBenchmark(report);
         }
 
         static void AddCourseColliders(CollisionWorld collision) {
@@ -275,6 +351,59 @@ namespace SoftBodyPhysics.Tests {
             });
             for (int i = 0; i < 20; i++) crowd.Step(1f / 60f);
             Finite(crowd);
+        }
+
+        struct Measured {
+            public StepProfile Profile;
+            public int Constraints;
+        }
+
+        static Measured TimeOneSphere(int segments, int stacks, int iterations, int extraDistances) {
+            var world = new PhysicsWorld(new PhysicsSettings {
+                FixedDeltaTime = 1f / 60f,
+                SolverIterations = iterations,
+                MaxStepsPerFrame = 1
+            });
+            DeformableBody body = Sphere(0.35f, segments, stacks, new Vec3(0f, 1f, 0f));
+            int count = body.Particles.Length;
+            for (int n = 0; n < extraDistances; n++) {
+                int indexA = n % count;
+                int indexB = (n * 3 + 1) % count;
+                if(indexA == indexB) indexB = (indexB + 1) % count;
+                body.AddConstraint(DistanceConstraint.Create(body, indexA, indexB));
+            }
+
+            world.AddBody(body);
+            for (int i = 0; i < 8; i++) world.Step(1f / 60f);
+            return new Measured {
+                Profile = Average(world, 30),
+                Constraints = body.Constraints.Count
+            };
+        }
+
+        static string PaceLine(string label, Measured step) {
+            return label
+                + " particles " + step.Profile.ParticleCount
+                + " constraints " + step.Constraints
+                + " predict " + step.Profile.PredictMilliseconds.ToString("0.000")
+                + " constraint " + step.Profile.ConstraintMilliseconds.ToString("0.000")
+                + " collision " + step.Profile.CollisionMilliseconds.ToString("0.000")
+                + " velocity " + step.Profile.VelocityMilliseconds.ToString("0.000")
+                + " total " + step.Profile.TotalMilliseconds.ToString("0.000");
+        }
+
+        static string Conditions() {
+            return "host " + SystemInfo.processorType
+                + " | cores " + SystemInfo.processorCount
+                + " | ram " + SystemInfo.systemMemorySize + " MB"
+                + " | " + SystemInfo.operatingSystem
+                + " | Unity " + Application.unityVersion
+                + " | one sphere, no colliders, step 1/60 s, warmup 8, average of 30 steps";
+        }
+
+        static void AppendBenchmark(StringBuilder report) {
+            string path = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Temp", "PhysicsBenchmark.txt");
+            File.AppendAllText(path, report.ToString());
         }
 
         static StepProfile Measure(int count, int segments, int stacks, float spacing, string label, StringBuilder report) {

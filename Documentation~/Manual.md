@@ -8,9 +8,19 @@ The material type is `BodyMaterial`.
 
 Add `com.softbodyphysics` as a local package, then import Samples from the Package Manager. Open a scene in that sample's `Scenes` folder and press Play. 
 
-Requires Universal Render Pipeline 17.6.0. 
+Requires Universal Render Pipeline 17.6.0. Importing the samples also needs Input System 1.20.0. The solver does not.
 
 The publisher is lunargator. Support is lunakhudman@gmail.com.
+
+## Samples
+
+The scenes are Fish Bowl, Plate, and Material Comp. Press **T** in any of them for the technical view. Keys 1 through 6 toggle each layer while that view is open.
+
+**Fish Bowl.** **A** and **D** orbit. **W** and **S** tilt. **F** shoves the bodies. **R** toggles the smooth surface.
+
+**Plate.** **A** and **E** orbit. **W** and **S** tilt. **D** drops one sphere, **F** drops three, and **G** drops ten. **R** toggles the smooth surface.
+
+**Material Comp.** The preset spheres and a jelly cube drop onto the floor. **F** switches between full speed and 0.25x. **R** starts the drop again.
 
 ## Quick start
 
