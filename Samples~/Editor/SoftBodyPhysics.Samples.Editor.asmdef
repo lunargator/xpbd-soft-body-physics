@@ -1,0 +1,20 @@
+{
+    "name": "SoftBodyPhysics.Samples.Editor",
+    "rootNamespace": "SoftBodyPhysics.Samples",
+    "references": [
+        "SoftBodyPhysics.Samples",
+        "SoftBodyPhysics.Unity",
+        "SoftBodyPhysics.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

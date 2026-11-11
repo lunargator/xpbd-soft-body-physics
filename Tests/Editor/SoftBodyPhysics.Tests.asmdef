@@ -1,0 +1,24 @@
+{
+    "name": "SoftBodyPhysics.Tests",
+    "rootNamespace": "SoftBodyPhysics.Tests",
+    "references": [
+        "SoftBodyPhysics.Core",
+        "SoftBodyPhysics.Unity"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

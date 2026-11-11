@@ -1,0 +1,19 @@
+{
+    "name": "SoftBodyPhysics.Editor",
+    "rootNamespace": "SoftBodyPhysics.Editor",
+    "references": [
+        "SoftBodyPhysics.Unity",
+        "SoftBodyPhysics.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

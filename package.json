@@ -1,0 +1,22 @@
+{
+  "name": "com.softbodyphysics",
+  "displayName": "Soft Body Physics",
+  "version": "0.1.0",
+  "unity": "6000.0",
+  "unityRelease": "0f1",
+  "description": "A surface XPBD soft-body solver for Unity 6. Particles, distance, shape matching, and volume. The runtime compiles without the Input System. Sample scenes use it.",
+  "author": {
+    "name": "lunargator",
+    "email": "lunakhudman@gmail.com"
+  },
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "17.6.0"
+  },
+  "samples": [
+    {
+      "displayName": "Samples",
+      "description": "Fish Bowl and Materials.",
+      "path": "Samples~"
+    }
+  ]
+}
